@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -9,11 +9,7 @@
     "jsx": "preserve",
     "jsxImportSource": "svelte",
     "types": ["svelte", "vite/client"],
-    "baseUrl": ".",
-    "paths": {
-      "$lib": ["./src/lib"],
-      "$lib/*": ["./src/lib/*"]
-    }
+
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.svelte"],
   "references": [

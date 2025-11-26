@@ -6,6 +6,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "preserve",
+    "composite": true,
+    "strict": true,
     "jsxImportSource": "svelte",
     "types": ["svelte", "vite/client"],
     "declaration": true,
