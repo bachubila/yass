@@ -1,6 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import Nav from '$lib/components/Nav.svelte';
 	
 	let { children } = $props();
 </script>
@@ -9,4 +10,13 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children()}
+<Nav />
+<main>
+	{@render children()}
+</main>
+
+<style>
+	main {
+		min-height: calc(100vh - 60px);
+	}
+</style>
