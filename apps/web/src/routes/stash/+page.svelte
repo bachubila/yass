@@ -1,6 +1,22 @@
 <script lang="ts">
 	import { tick } from "svelte";
+  import StashSidebar from "$lib/components/StashSidebar.svelte";
 
+    // Mock data for now
+  let stashes = $state([
+    {
+      id: "1",
+      name: "Quick Pastes",
+      slug: "x7f2k9",
+      pasteCount: 0,
+      isDefault: true,
+      createdAt: new Date(),
+    },
+  ]);
+
+  let activeStashId = $state<string | null>("1");
+  let isNamingNewStash = $state(false);
+  let newStashName = $state("");
   let content = $state("");
     let messagesContainer = $state<HTMLDivElement | null>(null);
   let messages = $state<Array<{ role: "user" | "yass"; content: string }>>([
@@ -35,9 +51,76 @@ ready when you are! 💅`,
     }
   }
 
+
+  function handleSelectStash(stash: { id: string }) {
+    activeStashId = stash.id;
+    isNamingNewStash = false;
+    // TODO: Load messages for this stash
+  }
+
+
+  function handleCreateNew() {
+    isNamingNewStash = true;
+    activeStashId = null;
+    messages = [
+      {
+        role: "yass",
+        content: `ooh, a new stash! ✨\n\nwhat do you wanna call it? type a name below and hit enter.\n\n(i'll turn it into a cute url for you)`,
+      },
+    ];
+  }
+
+  async function handleNameSubmit() {
+    if (!newStashName.trim()) return;
+
+    const slug = newStashName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    // TODO: Check if slug exists in DB, generate fallback if needed
+    const slugTaken = false; // Replace with actual check
+
+    const finalSlug = slugTaken
+      ? Math.random().toString(36).substring(2, 8)
+      : slug;
+
+    const newStash = {
+      id: crypto.randomUUID(),
+      name: newStashName.trim(),
+      slug: finalSlug,
+      pasteCount: 0,
+      isDefault: false,
+      createdAt: new Date(),
+    };
+
+    stashes = [...stashes, newStash];
+    activeStashId = newStash.id;
+
+    const responseMessage = slugTaken
+      ? `created "${newStash.name}"! 🎉\n\nheads up: "${slug}" was taken, so i gave you:\nyass.app/${finalSlug}\n\nnow paste away!`
+      : `created "${newStash.name}"! 🎉\n\nyour link: yass.app/${finalSlug}\n\nnow paste away!`;
+
+    messages = [
+      ...messages,
+      { role: "user", content: newStashName.trim() },
+      { role: "yass", content: responseMessage },
+    ];
+
+    isNamingNewStash = false;
+    newStashName = "";
+    await scrollToBottom();
+  }
+
   async function sendMessage() {
     if (!content.trim()) return;
 
+        if (isNamingNewStash) {
+      newStashName = content.trim();
+      content = "";
+      await handleNameSubmit();
+      return;
+    }
     messages = [...messages, { role: "user", content: content.trim() }];
     await scrollToBottom();
 
@@ -58,30 +141,13 @@ ready when you are! 💅`,
 </script>
 
 <div class="flex h-screen bg-pink-50">
-  <!-- Sidebar -->
-  <aside class="flex w-72 flex-col border-r border-pink-200 bg-white">
-    <div class="border-b border-pink-800 p-4">
-      <h1 class="text-xl font-bold text-black">yass</h1>
-      <p class="text-sm text-neutral-700">yet another sync service</p>
-    </div>
-
-    <div class="flex-1 p-4">
-      <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-600">
-        your stash
-      </h2>
-      <div class="flex flex-col items-center justify-center py-12 text-center">
-        <div class="mb-3 text-4xl">🗃️</div>
-        <p class="text-sm text-neutral-800">your stash is empty</p>
-        <p class="mt-1 text-xs text-neutral-700">paste something to get started</p>
-      </div>
-    </div>
-
-    <div class="border-t border-pink-200 p-4">
-      <p class="text-xs text-neutral-800">
-        pastes are stored locally via deviceId
-      </p>
-    </div>
-  </aside>
+<!-- Sidebar -->
+  <StashSidebar 
+  activeStashId={activeStashId}
+  stashes={stashes}
+  onSelect={handleSelectStash}
+  onCreateNew={handleCreateNew}
+  />
 
   <!-- Main Chat Area -->
   <main class="flex flex-1 flex-col">
