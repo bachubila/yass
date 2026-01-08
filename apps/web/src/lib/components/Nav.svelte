@@ -14,9 +14,10 @@
 
 <style>
   nav {
-    background: white;
+    background: rgba(255, 255, 255, 0.399);
     border-bottom: 1px solid #e5e7eb;
     position: sticky;
+    backdrop-filter: blur(5px);
     top: 0;
     z-index: 100;
   }

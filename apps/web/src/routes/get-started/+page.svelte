@@ -1,3 +1,4 @@
+<Nav/>
 <div class="get-started-container">
   <section class="hero">
     <h1>Get Started with YASS</h1>
@@ -142,6 +143,8 @@ npm run build`}</code></pre>
 </div>
 
 <script lang="ts">
+	import Nav from "$lib/components/Nav.svelte";
+
   let selectedMethod = '';
   let currentStep = 1;
 

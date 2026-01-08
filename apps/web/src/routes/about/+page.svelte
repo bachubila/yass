@@ -1,3 +1,10 @@
+<script lang="ts">
+	import Nav from "$lib/components/Nav.svelte";
+
+	export const year = new Date().getFullYear();
+</script>
+
+<Nav/>
 <div class="about-container">
   <section class="hero">
     <h1>About YASS</h1>

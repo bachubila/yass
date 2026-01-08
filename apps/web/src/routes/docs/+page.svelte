@@ -1,3 +1,9 @@
+<script lang="ts">
+	import Nav from "$lib/components/Nav.svelte";
+
+</script>
+
+<Nav/>
 <div class="docs-container">
   <aside class="sidebar">
     <nav class="docs-nav">
@@ -127,16 +133,16 @@ npm start</code></pre>
       <h3>Browser Extension</h3>
       <p>Install the YASS browser extension:</p>
       <ul>
-        <li><a href="#">Chrome Web Store</a></li>
-        <li><a href="#">Firefox Add-ons</a></li>
-        <li><a href="#">Safari App Store</a></li>
+        <li><a href="/">Chrome Web Store</a></li>
+        <li><a href="/">Firefox Add-ons</a></li>
+        <li><a href="/">Safari App Store</a></li>
       </ul>
 
       <h3>Mobile Apps</h3>
       <p>Download the mobile apps:</p>
       <ul>
-        <li><a href="#">iOS App Store</a></li>
-        <li><a href="#">Google Play Store</a></li>
+        <li><a href="/">iOS App Store</a></li>
+        <li><a href="/">Google Play Store</a></li>
       </ul>
     </section>
 
@@ -196,9 +202,9 @@ npm start</code></pre>
 
       <h3>Getting Help</h3>
       <ul>
-        <li><a href="#">GitHub Issues</a></li>
-        <li><a href="#">Discord Community</a></li>
-        <li><a href="#">Documentation Wiki</a></li>
+        <li><a href="/">GitHub Issues</a></li>
+        <li><a href="/">Discord Community</a></li>
+        <li><a href="/">Documentation Wiki</a></li>
       </ul>
     </section>
   </main>

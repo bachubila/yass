@@ -1,9 +1,17 @@
+<script lang="ts">
+	import Nav from "$lib/components/Nav.svelte";
+
+	export const year = new Date().getFullYear();
+</script>
+
+<Nav/>
 <div style="max-width: 1200px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
 	<div style="text-align: center; margin-bottom: 60px;">
 		<h1 style="font-size: 48px; margin-bottom: 20px;">Welcome to YASS</h1>
-		<p style="font-size: 20px; color: #666; margin-bottom: 30px;">
+		<p style="font-size: 20px; color: #666; margin-bottom: 10px;">
 			Yet Another Sync Service - A self-hostable, open-source sync platform
 		</p>
+		<a href="/stash" style="margin-bottom: 10px; display: block; font-size: 1.2rem; text-decoration: underline">Head over to your stash</a>
 		<p style="font-size: 16px; color: #888; max-width: 600px; margin: 0 auto; line-height: 1.6;">
 			Tired of relying on cloud services that compromise your privacy? YASS gives you the power to synchronize your data across devices while maintaining complete control over your infrastructure. Built with open-source principles at its core, our platform ensures transparency, security, and flexibility for users who value their digital sovereignty.
 		</p>
@@ -47,7 +55,7 @@
 
 	<div style="text-align: center; padding: 20px; border-top: 1px solid #ddd; color: #999;">
 		<p style="font-size: 14px;">
-			© 2025 YASS. Built with passion for data privacy and open-source principles.
+			&copy; {year.toString()} YASS. Built with passion for data privacy and open-source principles.
 		</p>
 	</div>
 </div>
