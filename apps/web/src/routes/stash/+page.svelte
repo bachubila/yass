@@ -27,7 +27,7 @@
 		{
 			id: '1',
 			name: 'Quick Pastes',
-			slug: 'x7f2k9',
+			slug:"",
 			pasteCount: 0,
 			isDefault: true,
 			createdAt: new Date()
@@ -37,10 +37,13 @@
 	let activeStashId = $state<string | null>('1');
 	let content = $state('');
 	let messagesContainer = $state<HTMLDivElement | null>(null);
-	let messages = $state<Array<{ role: 'user' | 'yass'; content: string }>>([
-		{
-			role: 'yass',
-			content: `hey! welcome to yass ✨
+
+	// Messages per stash
+	let messagesByStash = $state<Record<string, Array<{ role: 'user' | 'yass'; content: string }>>>({
+		'1': [
+			{
+				role: 'yass',
+				content: `hey! welcome to yass ✨
 
 i'm your friendly clipboard buddy. here's the deal:
 
@@ -49,11 +52,15 @@ i'm your friendly clipboard buddy. here's the deal:
 → no login, no fuss, just vibes
 
 ready when you are! 💅`
-		}
-	]);
+			}
+		]
+	});
+
+	// Derived messages for current stash
+	let messages = $derived(activeStashId ? messagesByStash[activeStashId] || [] : []);
 
 	// Track if current stash needs slug generation
-	let needsSlugGeneration = $state(false);
+	let needsSlugGeneration = $state(true);
 	let currentStashSlug = $state<string | null>(null);
 
 	// Mock database of taken slugs
@@ -79,7 +86,26 @@ ready when you are! 💅`
 		needsSlugGeneration = false;
 		const fullStash = stashes.find((s) => s.id === stash.id);
 		currentStashSlug = fullStash?.slug || null;
-		// TODO: Load messages for this stash
+
+		// Initialize messages for stash if they don't exist
+		if (!messagesByStash[stash.id]) {
+			messagesByStash[stash.id] = [
+				{
+					role: 'yass',
+					content: `hey! welcome to "${fullStash?.name}" stash ✨
+
+i'm your friendly clipboard buddy. here's the deal:
+
+→ paste anything in the box below
+→ i'll give you a link to share it anywhere
+→ no login, no fuss, just vibes
+
+ready when you are! 💅`
+				}
+			];
+		}
+
+		scrollToBottom();
 	}
 
 	function handleCreateNew() {
@@ -106,8 +132,8 @@ ready when you are! 💅`
 		needsSlugGeneration = true;
 		currentStashSlug = null;
 
-		// Reset messages for new stash
-		messages = [
+		// Initialize messages for new stash
+		messagesByStash[newStash.id] = [
 			{
 				role: 'yass',
 				content: `created "${newStash.name}"! 🎉\n\nyour stash is ready! paste anything below to get your shareable link.`
@@ -121,7 +147,11 @@ ready when you are! 💅`
 	async function sendMessage() {
 		if (!content.trim()) return;
 
-		messages = [...messages, { role: 'user', content: content.trim() }];
+		// Add user message to current stash
+		messagesByStash[activeStashId] = [
+			...(messagesByStash[activeStashId] || []),
+			{ role: 'user', content: content.trim() }
+		];
 		await scrollToBottom();
 
 		const activeStash = stashes.find((s) => s.id === activeStashId);
@@ -151,8 +181,8 @@ ready when you are! 💅`
 				? `got it! here's your link:\n\nyass.app/${finalSlug}\n\nheads up: "${slug}" was taken, so i gave you this random one instead. works just the same! ✨\n\ncopied to clipboard 📋`
 				: `got it! here's your link:\n\nyass.app/${finalSlug}\n\ncopied to clipboard 📋`;
 
-			messages = [
-				...messages,
+			messagesByStash[activeStashId] = [
+				...(messagesByStash[activeStashId] || []),
 				{
 					role: 'yass',
 					content: messageContent
@@ -189,22 +219,24 @@ ready when you are! 💅`
 		onSelect={handleSelectStash}
 		onCreateNew={handleCreateNew}
 	/>
-    <!-- Toast Container -->
-    <div class="fixed top-4 left-1/2 z-50 -translate-x-1/2 transform space-y-2">
-      {#each toasts as toast (toast.id)}
-        <div
-          class={[
-            'transform rounded-lg border px-6 py-3 shadow-lg transition-all duration-300',
-            toast.type === 'success'
-              ? 'border-green-600 bg-green-300 text-black'
-              : 'border-red-600 bg-red-300 text-black'
-          ].join(' ')}
-          role="alert"
-        >
-          <p class="text-sm font-medium">{toast.message}</p>
-        </div>
-      {/each}
-    </div>
+
+	<!-- Toast Container -->
+	<div class="fixed top-4 left-1/2 z-50 -translate-x-1/2 transform space-y-2">
+		{#each toasts as toast (toast.id)}
+			<div
+				class={[
+					'transform rounded-lg border px-6 py-3 shadow-lg transition-all duration-300',
+					toast.type === 'success'
+						? 'border-green-600 bg-green-300 text-black'
+						: 'border-red-600 bg-red-300 text-black'
+				].join(' ')}
+				role="alert"
+			>
+				<p class="text-sm font-medium">{toast.message}</p>
+			</div>
+		{/each}
+	</div>
+
 	<!-- Main Chat Area -->
 	<main class="flex flex-1 flex-col">
 		<!-- Messages -->
