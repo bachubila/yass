@@ -54,6 +54,7 @@ ready when you are! 💅`
 
 	// Track if current stash needs slug generation
 	let needsSlugGeneration = $state(false);
+	let currentStashSlug = $state<string | null>(null);
 
 	// Mock database of taken slugs
 	const takenSlugs = new Set(['quick-pastes', 'my-stash', 'test', 'demo', 'public', 'api']);
@@ -76,6 +77,8 @@ ready when you are! 💅`
 	function handleSelectStash(stash: { id: string }) {
 		activeStashId = stash.id;
 		needsSlugGeneration = false;
+		const fullStash = stashes.find((s) => s.id === stash.id);
+		currentStashSlug = fullStash?.slug || null;
 		// TODO: Load messages for this stash
 	}
 
@@ -101,6 +104,7 @@ ready when you are! 💅`
 		stashes = [...stashes, newStash];
 		activeStashId = newStash.id;
 		needsSlugGeneration = true;
+		currentStashSlug = null;
 
 		// Reset messages for new stash
 		messages = [
@@ -142,21 +146,22 @@ ready when you are! 💅`
 				s.id === activeStashId ? { ...s, slug: finalSlug, pasteCount: s.pasteCount + 1 } : s
 			);
 
-			if (slugTaken) {
-				// Show chat message for slug conflict
-				messages = [
-					...messages,
-					{
-						role: 'yass',
-						content: `got it! here's your link:\n\nyass.app/${finalSlug}\n\nheads up: "${slug}" was taken, so i gave you this random one instead. works just the same! ✨\n\ncopied to clipboard 📋`
-					}
-				];
-			} else {
-				// Show toast for successful slug generation
-				showToast(`Link created: yass.app/${finalSlug}`, 'success');
-				// Copy to clipboard
-				navigator.clipboard.writeText(`yass.app/${finalSlug}`);
-			}
+			// Always show the slug message on first paste
+			const messageContent = slugTaken
+				? `got it! here's your link:\n\nyass.app/${finalSlug}\n\nheads up: "${slug}" was taken, so i gave you this random one instead. works just the same! ✨\n\ncopied to clipboard 📋`
+				: `got it! here's your link:\n\nyass.app/${finalSlug}\n\ncopied to clipboard 📋`;
+
+			messages = [
+				...messages,
+				{
+					role: 'yass',
+					content: messageContent
+				}
+			];
+
+			// Set current slug and copy to clipboard
+			currentStashSlug = finalSlug;
+			navigator.clipboard.writeText(`yass.app/${finalSlug}`);
 
 			needsSlugGeneration = false;
 		} else {
@@ -168,9 +173,7 @@ ready when you are! 💅`
 				s.id === activeStashId ? { ...s, pasteCount: s.pasteCount + 1 } : s
 			);
 
-			showToast(`Content stashed! Link: yass.app/${slug}`, 'success');
-			// Copy to clipboard
-			navigator.clipboard.writeText(`yass.app/${slug}`);
+			showToast(`Content stashed!`, 'success');
 		}
 
 		await scrollToBottom();
@@ -186,7 +189,22 @@ ready when you are! 💅`
 		onSelect={handleSelectStash}
 		onCreateNew={handleCreateNew}
 	/>
-
+    <!-- Toast Container -->
+    <div class="fixed top-4 left-1/2 z-50 -translate-x-1/2 transform space-y-2">
+      {#each toasts as toast (toast.id)}
+        <div
+          class={[
+            'transform rounded-lg border px-6 py-3 shadow-lg transition-all duration-300',
+            toast.type === 'success'
+              ? 'border-green-600 bg-green-300 text-black'
+              : 'border-red-600 bg-red-300 text-black'
+          ].join(' ')}
+          role="alert"
+        >
+          <p class="text-sm font-medium">{toast.message}</p>
+        </div>
+      {/each}
+    </div>
 	<!-- Main Chat Area -->
 	<main class="flex flex-1 flex-col">
 		<!-- Messages -->
@@ -210,22 +228,21 @@ ready when you are! 💅`
 			</div>
 		</div>
 
-		<!-- Toast Container -->
-		<div class="fixed top-4 left-1/2 z-50 -translate-x-1/2 transform space-y-2">
-			{#each toasts as toast (toast.id)}
-				<div
-					class={[
-						'transform rounded-lg border px-6 py-3 shadow-lg transition-all duration-300',
-						toast.type === 'success'
-							? 'border-green-600 bg-green-500 text-white'
-							: 'border-red-600 bg-red-500 text-white'
-					].join(' ')}
-					role="alert"
-				>
-					<p class="text-sm font-medium">{toast.message}</p>
+		<!-- Fixed Slug Display -->
+		{#if currentStashSlug}
+			<div class="border-b border-pink-200 bg-pink-100 px-6 py-3">
+				<div class="mx-auto max-w-2xl text-center">
+					<p class="text-xs text-pink-600">access this stash anywhere via:</p>
+					<a
+						href={`https://yass.app/${currentStashSlug}`}
+						target="_blank"
+						class="text-sm font-medium text-pink-700 hover:text-pink-900 hover:underline"
+					>
+						yass.app/{currentStashSlug}
+					</a>
 				</div>
-			{/each}
-		</div>
+			</div>
+		{/if}
 
 		<!-- Input Area -->
 		<div class="border-t border-pink-200 bg-pink-50 p-4">

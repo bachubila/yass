@@ -87,7 +87,7 @@
     <button
       onclick={onCreateNew}
       class="flex w-full items-center justify-center gap-2 rounded-lg border border-pink-300 
-             bg-white px-4 py-2 text-sm font-medium text-pink-600 
+             bg-white px-4 py-2 text-sm font-medium text-pink-600 cursor-pointer
              transition-colors hover:bg-pink-50"
     >
       <span class="text-lg">+</span>
