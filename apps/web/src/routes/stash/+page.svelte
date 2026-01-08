@@ -2,6 +2,26 @@
 	import { tick } from 'svelte';
 	import StashSidebar from '$lib/components/StashSidebar.svelte';
 
+	// Toast system
+	interface Toast {
+		id: string;
+		message: string;
+		type: 'success' | 'error';
+		duration?: number;
+	}
+
+	let toasts = $state<Toast[]>([]);
+
+	function showToast(message: string, type: 'success' | 'error' = 'success', duration = 3000) {
+		const id = crypto.randomUUID();
+		const toast = { id, message, type, duration };
+		toasts = [...toasts, toast];
+
+		setTimeout(() => {
+			toasts = toasts.filter((t) => t.id !== id);
+		}, duration);
+	}
+
 	// Mock data for now
 	let stashes = $state([
 		{
@@ -15,8 +35,6 @@
 	]);
 
 	let activeStashId = $state<string | null>('1');
-	let isNamingNewStash = $state(false);
-	let newStashName = $state('');
 	let content = $state('');
 	let messagesContainer = $state<HTMLDivElement | null>(null);
 	let messages = $state<Array<{ role: 'user' | 'yass'; content: string }>>([
@@ -30,11 +48,15 @@ i'm your friendly clipboard buddy. here's the deal:
 → i'll give you a link to share it anywhere
 → no login, no fuss, just vibes
 
-oh and don't worry — i remember your stuff on this device using a lil' thing called a deviceId (it lives in your browser's localStorage). so your stash stays yours, even if you refresh.
-
 ready when you are! 💅`
 		}
 	]);
+
+	// Track if current stash needs slug generation
+	let needsSlugGeneration = $state(false);
+
+	// Mock database of taken slugs
+	const takenSlugs = new Set(['quick-pastes', 'my-stash', 'test', 'demo', 'public', 'api']);
 
 	async function scrollToBottom() {
 		await tick(); // wait for DOM to update
@@ -53,7 +75,7 @@ ready when you are! 💅`
 
 	function handleSelectStash(stash: { id: string }) {
 		activeStashId = stash.id;
-		isNamingNewStash = false;
+		needsSlugGeneration = false;
 		// TODO: Load messages for this stash
 	}
 
@@ -63,24 +85,14 @@ ready when you are! 💅`
 		if (stashName === null) return; // User cancelled
 
 		if (!stashName.trim()) {
-			alert('Please enter a name for your stash!');
+			showToast('Please enter a name for your stash!', 'error');
 			return;
 		}
-
-		const slug = stashName
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-|-$/g, '');
-
-		// TODO: Check if slug exists in DB, generate fallback if needed
-		const slugTaken = false; // Replace with actual check
-
-		const finalSlug = slugTaken ? Math.random().toString(36).substring(2, 8) : slug;
 
 		const newStash = {
 			id: crypto.randomUUID(),
 			name: stashName.trim(),
-			slug: finalSlug,
+			slug: '', // Will be generated on first paste
 			pasteCount: 0,
 			isDefault: false,
 			createdAt: new Date()
@@ -88,86 +100,80 @@ ready when you are! 💅`
 
 		stashes = [...stashes, newStash];
 		activeStashId = newStash.id;
+		needsSlugGeneration = true;
 
-		const responseMessage = slugTaken
-			? `created "${newStash.name}"! 🎉\n\nheads up: "${slug}" was taken, so i gave you:\nyass.app/${finalSlug}\n\nnow paste away!`
-			: `created "${newStash.name}"! 🎉\n\nyour link: yass.app/${finalSlug}\n\nnow paste away!`;
-
+		// Reset messages for new stash
 		messages = [
 			{
 				role: 'yass',
-				content: responseMessage
+				content: `created "${newStash.name}"! 🎉\n\nyour stash is ready! paste anything below to get your shareable link.`
 			}
 		];
 
-		isNamingNewStash = false;
+		showToast(`"${newStash.name}" stash created!`, 'success');
 		scrollToBottom();
-	}
-
-	async function handleNameSubmit() {
-		if (!newStashName.trim()) return;
-
-		const slug = newStashName
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-|-$/g, '');
-
-		// TODO: Check if slug exists in DB, generate fallback if needed
-		const slugTaken = false; // Replace with actual check
-
-		const finalSlug = slugTaken ? Math.random().toString(36).substring(2, 8) : slug;
-
-		const newStash = {
-			id: crypto.randomUUID(),
-			name: newStashName.trim(),
-			slug: finalSlug,
-			pasteCount: 0,
-			isDefault: false,
-			createdAt: new Date()
-		};
-
-		stashes = [...stashes, newStash];
-		activeStashId = newStash.id;
-
-		const responseMessage = slugTaken
-			? `created "${newStash.name}"! 🎉\n\nheads up: "${slug}" was taken, so i gave you:\nyass.app/${finalSlug}\n\nnow paste away!`
-			: `created "${newStash.name}"! 🎉\n\nyour link: yass.app/${finalSlug}\n\nnow paste away!`;
-
-		messages = [
-			...messages,
-			{ role: 'user', content: newStashName.trim() },
-			{ role: 'yass', content: responseMessage }
-		];
-
-		isNamingNewStash = false;
-		newStashName = '';
-		await scrollToBottom();
 	}
 
 	async function sendMessage() {
 		if (!content.trim()) return;
 
-		if (isNamingNewStash) {
-			newStashName = content.trim();
-			content = '';
-			await handleNameSubmit();
-			return;
-		}
 		messages = [...messages, { role: 'user', content: content.trim() }];
 		await scrollToBottom();
 
-		// TODO: Call Convex mutation here, get slug back
-		const fakeSlug = Math.random().toString(36).substring(2, 8);
+		const activeStash = stashes.find((s) => s.id === activeStashId);
+		if (!activeStash) return;
 
-		messages = [
-			...messages,
-			{
-				role: 'yass',
-				content: `got it! here's your link:\n\nyass.app/${fakeSlug}\n\ncopied to clipboard 📋`
+		let slug: string;
+		let slugTaken = false;
+
+		// Generate slug if this is the first paste in a new stash
+		if (needsSlugGeneration && !activeStash.slug) {
+			slug = activeStash.name
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-|-$/g, '');
+
+			slugTaken = takenSlugs.has(slug);
+
+			const finalSlug = slugTaken ? Math.random().toString(36).substring(2, 8) : slug;
+
+			// Update stash with slug
+			stashes = stashes.map((s) =>
+				s.id === activeStashId ? { ...s, slug: finalSlug, pasteCount: s.pasteCount + 1 } : s
+			);
+
+			if (slugTaken) {
+				// Show chat message for slug conflict
+				messages = [
+					...messages,
+					{
+						role: 'yass',
+						content: `got it! here's your link:\n\nyass.app/${finalSlug}\n\nheads up: "${slug}" was taken, so i gave you this random one instead. works just the same! ✨\n\ncopied to clipboard 📋`
+					}
+				];
+			} else {
+				// Show toast for successful slug generation
+				showToast(`Link created: yass.app/${finalSlug}`, 'success');
+				// Copy to clipboard
+				navigator.clipboard.writeText(`yass.app/${finalSlug}`);
 			}
-		];
-		await scrollToBottom();
 
+			needsSlugGeneration = false;
+		} else {
+			// Existing stash or slug already exists
+			slug = activeStash.slug || Math.random().toString(36).substring(2, 8);
+
+			// Update paste count
+			stashes = stashes.map((s) =>
+				s.id === activeStashId ? { ...s, pasteCount: s.pasteCount + 1 } : s
+			);
+
+			showToast(`Content stashed! Link: yass.app/${slug}`, 'success');
+			// Copy to clipboard
+			navigator.clipboard.writeText(`yass.app/${slug}`);
+		}
+
+		await scrollToBottom();
 		content = '';
 	}
 </script>
@@ -202,6 +208,23 @@ ready when you are! 💅`
 					</div>
 				{/each}
 			</div>
+		</div>
+
+		<!-- Toast Container -->
+		<div class="fixed top-4 left-1/2 z-50 -translate-x-1/2 transform space-y-2">
+			{#each toasts as toast (toast.id)}
+				<div
+					class={[
+						'transform rounded-lg border px-6 py-3 shadow-lg transition-all duration-300',
+						toast.type === 'success'
+							? 'border-green-600 bg-green-500 text-white'
+							: 'border-red-600 bg-red-500 text-white'
+					].join(' ')}
+					role="alert"
+				>
+					<p class="text-sm font-medium">{toast.message}</p>
+				</div>
+			{/each}
 		</div>
 
 		<!-- Input Area -->
