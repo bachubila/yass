@@ -2,6 +2,21 @@
 	import { tick } from 'svelte';
 	import StashSidebar from '$lib/components/StashSidebar.svelte';
 
+	// Create or get device id (browser only)
+	let deviceId = ''
+
+	if (typeof window !== 'undefined') {
+		const storedDeviceId = localStorage.getItem('yass-device-id');
+		if (storedDeviceId) {
+			deviceId = storedDeviceId;
+		} else {
+			const newDeviceId = crypto.randomUUID();
+			localStorage.setItem('yass-device-id', newDeviceId);
+			deviceId = newDeviceId;
+		}
+		console.log('deviceId', deviceId);
+	}
+
 	// Toast system
 	interface Toast {
 		id: string;
@@ -27,7 +42,7 @@
 		{
 			id: '1',
 			name: 'Quick Pastes',
-			slug:"",
+			slug: '',
 			pasteCount: 0,
 			isDefault: true,
 			createdAt: new Date()
